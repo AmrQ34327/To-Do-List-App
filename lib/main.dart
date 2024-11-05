@@ -219,42 +219,39 @@ class _TasksPageState extends State<TasksPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('To-Do List'),
-        centerTitle: true,
-      ),
-      body: const Center(
-        child:  Text('Tasks Page Under Construction',
-        style: TextStyle(
-          fontSize: 50.0,
-          fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,)
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: const Text('To-Do List'),
+          centerTitle: true,
         ),
-    bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: const Color.fromARGB(255, 150, 255, 150),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list),
-              label: 'Tasks',
-            )
-          ],
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-              if (index == 0) {
-                Navigator.pushNamed(context, '/');
-              } else if (index == 1) {
-                Navigator.pushNamed(context, '/tasks');
-              }
-            });
-          })
-    
-    );
+        body: const Center(
+            child: Text(
+          'Tasks Page Under Construction',
+          style: TextStyle(fontSize: 50.0, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        )),
+        bottomNavigationBar: BottomNavigationBar(
+            backgroundColor: const Color.fromARGB(255, 150, 255, 150),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.list),
+                label: 'Tasks',
+              )
+            ],
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+                if (index == 0) {
+                  Navigator.pushNamed(context, '/');
+                } else if (index == 1) {
+                  Navigator.pushNamed(context, '/tasks');
+                }
+              });
+            }));
   }
 }
