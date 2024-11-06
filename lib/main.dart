@@ -1,9 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive/hive.dart';
+part 'main.g.dart';
 
-void main() {
+late Box<Task> taskBox; // to be global
+
+void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter(TaskAdapter());
+  // Opens the Hive box for tasks (where the to-do list items are stored)
+  taskBox = await Hive.openBox<Task>('tasks'); // the hive box is named 'tasks'
   runApp(const MyApp());
 }
 
+@HiveType(typeId: 1)
+class Task {
+  @HiveField(0)
+  String name;
+  @HiveField(1)
+  bool isdone = false;
+  Task({required this.name});
+}
+
+// then stage and commit then push to remote
+// then switch to main branch then
+// then git pull origin main then merge
+// then push to master
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -35,6 +57,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   int _currentIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,7 +116,24 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                if (_controller.text.isNotEmpty) {
+                  taskBox.add(Task(name: _controller.text));
+                  _controller.clear();
+                  // this down to close the keyboard after pressing
+                  //FocusScope.of(context).requestFocus(FocusNode());
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Task added!")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                      "Please enter a task!", 
+                     )),
+                  );
+                }
+              },
               icon: const Icon(
                 Icons.add,
                 color: Colors.white,
@@ -141,7 +181,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             children: [
                               ListTile(
                                 leading: const Icon(Icons.account_circle),
-                                title: const Text('Profile'),
+                                title: const Text('Auto Close Keyboard after adding task'),
                                 onTap: () {
                                   Navigator.of(context).pop();
                                   print("Profile selected");
@@ -149,7 +189,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               ListTile(
                                 leading: const Icon(Icons.notifications),
-                                title: const Text('Notifications'),
+                                title: const Text('Show Task Added After entering a task'),
                                 onTap: () {
                                   Navigator.of(context).pop();
                                   print("Notifications selected");
@@ -157,7 +197,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               ListTile(
                                 leading: const Icon(Icons.settings),
-                                title: const Text('Settings'),
+                                title: const Text('Dark Theme'),
                                 onTap: () {
                                   Navigator.of(context).pop();
                                   print("Settings selected");
@@ -224,12 +264,35 @@ class _TasksPageState extends State<TasksPage> {
           title: const Text('To-Do List'),
           centerTitle: true,
         ),
-        body: const Center(
-            child: Text(
-          'Tasks Page Under Construction',
-          style: TextStyle(fontSize: 50.0, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        )),
+        body: ValueListenableBuilder(
+          valueListenable:
+              taskBox.listenable(), // This listens to changes in the box
+          builder: (context, Box<Task> box, _) {
+            // 'box' is the current state of the Box
+            if (box.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No tasks available. Add some!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              );
+            } else {
+              return ListView.builder(
+                itemCount: box
+                    .length, // box is passed to the builder and represents the taskBox
+                itemBuilder: (context, index) {
+                  final task =
+                      box.getAt(index); // Fetches the task at the current index
+                  return TaskWidget(task: task!, index: index);
+                },
+              );
+            }
+          },
+        ),
         bottomNavigationBar: BottomNavigationBar(
             backgroundColor: const Color.fromARGB(255, 150, 255, 150),
             items: const [
@@ -253,5 +316,33 @@ class _TasksPageState extends State<TasksPage> {
                 }
               });
             }));
+  }
+}
+
+class TaskWidget extends StatelessWidget {
+  final Task task;
+  final int index;
+
+  const TaskWidget({super.key, required this.task, required this.index});
+
+  void _deleteTask(BuildContext context) {
+    final taskBox = Hive.box<Task>('tasks');
+    taskBox.deleteAt(index); // Delete task at the given index
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Task finished!")),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(task.name),
+      trailing: IconButton(
+        icon: const Icon(Icons.delete),
+        onPressed: () {
+          _deleteTask(context);
+        },
+      ),
+    );
   }
 }
