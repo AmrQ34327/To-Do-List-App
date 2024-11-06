@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 part 'main.g.dart';
 
 late Box<Task> taskBox; // to be global
@@ -22,12 +22,19 @@ class Task {
   Task({required this.name});
 }
 
-// then stage and commit then push to remote
-// then switch to main branch then
-// then git pull origin main then merge
-// then push to master
-class MyApp extends StatelessWidget {
+// stage(add .) and commit
+// switch to master branch then merge
+// then push to master(remote)
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isDarkThemeEnabled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +46,82 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
+        darkTheme: ThemeData(
+  brightness: Brightness.dark,
+  scaffoldBackgroundColor: const Color(0xFF121212), // Dark background
+  colorScheme: const ColorScheme.dark(
+    primary:  Color(0xFFBB86FC),  // Light purple as primary accent
+    secondary:  Color(0xFF03DAC6),  // Aqua secondary color
+    surface:  Color(0xFF1E1E1E),  // Darker surfaces
+    error: Colors.redAccent,
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color(0xFF1F1F1F), // Darker app bar background
+    iconTheme: IconThemeData(color: Colors.white),
+    titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+  ),
+  textTheme: const TextTheme(
+    bodyMedium: TextStyle(color: Colors.white70), // Default text color
+    titleMedium: TextStyle(color: Colors.white),
+    headlineSmall: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: const Color(0xFF1E1E1E),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(30.0),
+      borderSide: const BorderSide(color: Color(0xFFBB86FC), width: 2.0),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(30.0),
+      borderSide: const BorderSide(color: Color(0xFFBB86FC), width: 2.0),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(30.0),
+      borderSide: const BorderSide(color: Color(0xFF03DAC6), width: 2.0),
+    ),
+    labelStyle: const TextStyle(color: Colors.white70),
+    hintStyle: const TextStyle(color: Colors.grey),
+  ),
+  floatingActionButtonTheme: const FloatingActionButtonThemeData(
+    backgroundColor: Color(0xFFBB86FC),
+    foregroundColor: Colors.white,
+  ),
+  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+    backgroundColor: Color(0xFF1F1F1F),
+    selectedItemColor: Color.fromARGB(183, 91, 231, 73),
+    unselectedItemColor: Colors.white70,
+  ),
+  switchTheme: SwitchThemeData(
+    thumbColor: WidgetStateProperty.all(const Color.fromARGB(213, 231, 225, 238)),
+    trackColor: WidgetStateProperty.all(const Color(0xFF03DAC6).withOpacity(0.5)),
+  ),
+),
         initialRoute: '/',
+        themeMode: _isDarkThemeEnabled ? ThemeMode.dark : ThemeMode.light,
         routes: {
-          '/': (context) => const MyHomePage(),
+          '/': (context) => MyHomePage(
+          isDarkThemeEnabled: _isDarkThemeEnabled,
+          onThemeChanged: (isDark) {
+            setState(() {
+              _isDarkThemeEnabled = isDark; // Update the theme mode
+            });
+          },
+        ),
           '/tasks': (context) => const TasksPage()
         });
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+  final bool isDarkThemeEnabled;
+  final ValueChanged<bool> onThemeChanged; // Callback to update theme
+
+  const MyHomePage({
+    super.key,
+    required this.isDarkThemeEnabled,
+    required this.onThemeChanged
+    });
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -57,6 +130,16 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   int _currentIndex = 0;
+  bool _isCloseKeyboardEnabled = false;
+  bool _isShowTaskAddedEnabled = true;
+  bool _isDarkThemeEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkThemeEnabled = widget.isDarkThemeEnabled; // Initialize with the parent state
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -121,16 +204,19 @@ class _MyHomePageState extends State<MyHomePage> {
                   taskBox.add(Task(name: _controller.text));
                   _controller.clear();
                   // this down to close the keyboard after pressing
-                  //FocusScope.of(context).requestFocus(FocusNode());
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Task added!")),
-                  );
+                  _isCloseKeyboardEnabled 
+                  ? FocusScope.of(context).requestFocus(FocusNode()) : null ;
+                  _isShowTaskAddedEnabled
+                      ? ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Task added!")),
+                        )
+                      : null;
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                      "Please enter a task!", 
-                     )),
+                        content: Text(
+                      "Please enter a task!",
+                    )),
                   );
                 }
               },
@@ -159,52 +245,75 @@ class _MyHomePageState extends State<MyHomePage> {
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Settings Menu'),
-                              IconButton(
-                                icon: const Icon(Icons.close),
-                                onPressed: () {
-                                  Navigator.of(context)
-                                      .pop(); // Closes the dialog
-                                },
+                        return StatefulBuilder(
+                          builder: (context, setDialogState) {
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
                               ),
-                            ],
-                          ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.account_circle),
-                                title: const Text('Auto Close Keyboard after adding task'),
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  print("Profile selected");
-                                },
+                              title: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Settings Menu'),
+                                  IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(); // Closes the dialog
+                                    },
+                                  ),
+                                ],
                               ),
-                              ListTile(
-                                leading: const Icon(Icons.notifications),
-                                title: const Text('Show Task Added After entering a task'),
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  print("Notifications selected");
-                                },
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    trailing: Switch(
+                                      value: _isCloseKeyboardEnabled,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _isCloseKeyboardEnabled = value;
+                                        });
+                                        setDialogState(
+                                            () {}); // Updates the dialog's UI
+                                      },
+                                      activeColor: Colors.green,
+                                    ),
+                                    title: const Text(
+                                        'Close Keyboard after adding task'),
+                                  ),
+                                  ListTile(
+                                    trailing: Switch(
+                                      value: _isShowTaskAddedEnabled,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _isShowTaskAddedEnabled = value;
+                                        });
+                                        setDialogState(() {});
+                                      },
+                                      activeColor: Colors.green,
+                                    ),
+                                    title: const Text(
+                                        'Show Task Added After entering a task'),
+                                  ),
+                                  ListTile(
+                                    trailing: Switch(
+                                      value: _isDarkThemeEnabled,
+                                      onChanged: (value) {
+                                    setDialogState(() {
+                                      _isDarkThemeEnabled = value;
+                                    });
+                                    widget.onThemeChanged(value); // Update the theme in the parent widget
+                                  },
+                                      activeColor: Colors.green,
+                                    ),
+                                    title: const Text('Dark Theme'),
+                                  ),
+                                ],
                               ),
-                              ListTile(
-                                leading: const Icon(Icons.settings),
-                                title: const Text('Dark Theme'),
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  print("Settings selected");
-                                },
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
                     );
@@ -220,7 +329,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: const Color.fromARGB(255, 150, 255, 150),
+         
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
@@ -294,7 +403,6 @@ class _TasksPageState extends State<TasksPage> {
           },
         ),
         bottomNavigationBar: BottomNavigationBar(
-            backgroundColor: const Color.fromARGB(255, 150, 255, 150),
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home),
