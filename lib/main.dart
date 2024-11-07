@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart'; 
 part 'main.g.dart';
 
 late Box<Task> taskBox; // to be global
+late Box settingsBox;
 
 void main() async {
-  await Hive.initFlutter();
+  WidgetsFlutterBinding.ensureInitialized();
+  final dir = await getApplicationDocumentsDirectory();
+  await Hive.initFlutter(dir.path);
   Hive.registerAdapter(TaskAdapter());
   // Opens the Hive box for tasks (where the to-do list items are stored)
   taskBox = await Hive.openBox<Task>('tasks'); // the hive box is named 'tasks'
-  runApp(const MyApp());
+  settingsBox = await Hive.openBox('settings');
+  bool isDarkThemeEnabled =
+      settingsBox.get('_isDarkThemeEnabled', defaultValue: false);
+  runApp(MyApp(isDarkThemeEnabled: isDarkThemeEnabled));
 }
 
 @HiveType(typeId: 1)
@@ -22,12 +28,11 @@ class Task {
   Task({required this.name});
 }
 
-// stage(add .) and commit
-// switch to master branch then merge
-// then push to master(remote)
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final bool isDarkThemeEnabled;
+
+  const MyApp({super.key, required this.isDarkThemeEnabled});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -37,77 +42,97 @@ class _MyAppState extends State<MyApp> {
   bool _isDarkThemeEnabled = false;
 
   @override
+  void initState() {
+    super.initState();
+    _isDarkThemeEnabled =
+        settingsBox.get('_isDarkThemeEnabled', defaultValue: false);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
         title: 'To-Do List',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(195, 6, 250, 67),
-          ),
-          useMaterial3: true,
-        ),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color.fromARGB(195, 6, 250, 67),
+            ),
+            useMaterial3: true,
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Color.fromARGB(162, 15, 196, 45),
+            ),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color.fromARGB(162, 15, 196, 45),
+            )),
         darkTheme: ThemeData(
-  brightness: Brightness.dark,
-  scaffoldBackgroundColor: const Color(0xFF121212), // Dark background
-  colorScheme: const ColorScheme.dark(
-    primary:  Color(0xFFBB86FC),  // Light purple as primary accent
-    secondary:  Color(0xFF03DAC6),  // Aqua secondary color
-    surface:  Color(0xFF1E1E1E),  // Darker surfaces
-    error: Colors.redAccent,
-  ),
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF1F1F1F), // Darker app bar background
-    iconTheme: IconThemeData(color: Colors.white),
-    titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-  ),
-  textTheme: const TextTheme(
-    bodyMedium: TextStyle(color: Colors.white70), // Default text color
-    titleMedium: TextStyle(color: Colors.white),
-    headlineSmall: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-  ),
-  inputDecorationTheme: InputDecorationTheme(
-    filled: true,
-    fillColor: const Color(0xFF1E1E1E),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(30.0),
-      borderSide: const BorderSide(color: Color(0xFFBB86FC), width: 2.0),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(30.0),
-      borderSide: const BorderSide(color: Color(0xFFBB86FC), width: 2.0),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(30.0),
-      borderSide: const BorderSide(color: Color(0xFF03DAC6), width: 2.0),
-    ),
-    labelStyle: const TextStyle(color: Colors.white70),
-    hintStyle: const TextStyle(color: Colors.grey),
-  ),
-  floatingActionButtonTheme: const FloatingActionButtonThemeData(
-    backgroundColor: Color(0xFFBB86FC),
-    foregroundColor: Colors.white,
-  ),
-  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-    backgroundColor: Color(0xFF1F1F1F),
-    selectedItemColor: Color.fromARGB(183, 91, 231, 73),
-    unselectedItemColor: Colors.white70,
-  ),
-  switchTheme: SwitchThemeData(
-    thumbColor: WidgetStateProperty.all(const Color.fromARGB(213, 231, 225, 238)),
-    trackColor: WidgetStateProperty.all(const Color(0xFF03DAC6).withOpacity(0.5)),
-  ),
-),
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF121212), // Dark background
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFFBB86FC),
+            secondary: Color(0xFF03DAC6),
+            surface: Color(0xFF1E1E1E), // Darker surfaces
+            error: Colors.redAccent,
+          ),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF1F1F1F), // Darker app bar background
+            iconTheme: IconThemeData(color: Colors.white),
+            titleTextStyle: TextStyle(
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          textTheme: const TextTheme(
+            bodyMedium: TextStyle(color: Colors.white70), // Default text color
+            titleMedium: TextStyle(color: Colors.white),
+            headlineSmall:
+                TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFF1E1E1E),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30.0),
+              borderSide:
+                  const BorderSide(color: Color(0xFFBB86FC), width: 2.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30.0),
+              borderSide:
+                  const BorderSide(color: Color(0xFFBB86FC), width: 2.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30.0),
+              borderSide:
+                  const BorderSide(color: Color(0xFF03DAC6), width: 2.0),
+            ),
+            labelStyle: const TextStyle(color: Colors.white70),
+            hintStyle: const TextStyle(color: Colors.grey),
+          ),
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor: Color(0xFFBB86FC),
+            foregroundColor: Colors.white,
+          ),
+          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+            backgroundColor: Color(0xFF1F1F1F),
+            selectedItemColor: Color.fromARGB(183, 91, 231, 73),
+            unselectedItemColor: Colors.white70,
+          ),
+          switchTheme: SwitchThemeData(
+            thumbColor: WidgetStateProperty.all(
+                const Color.fromARGB(213, 231, 225, 238)),
+            trackColor: WidgetStateProperty.all(
+                const Color(0xFF03DAC6).withOpacity(0.5)),
+          ),
+        ),
         initialRoute: '/',
         themeMode: _isDarkThemeEnabled ? ThemeMode.dark : ThemeMode.light,
         routes: {
           '/': (context) => MyHomePage(
-          isDarkThemeEnabled: _isDarkThemeEnabled,
-          onThemeChanged: (isDark) {
-            setState(() {
-              _isDarkThemeEnabled = isDark; // Update the theme mode
-            });
-          },
-        ),
+                isDarkThemeEnabled: _isDarkThemeEnabled,
+                onThemeChanged: (isDark) {
+                  setState(() {
+                    _isDarkThemeEnabled = isDark; // Update the theme mode
+                    settingsBox.put('_isDarkThemeEnabled', isDark);
+                  });
+                },
+              ),
           '/tasks': (context) => const TasksPage()
         });
   }
@@ -117,11 +142,10 @@ class MyHomePage extends StatefulWidget {
   final bool isDarkThemeEnabled;
   final ValueChanged<bool> onThemeChanged; // Callback to update theme
 
-  const MyHomePage({
-    super.key,
-    required this.isDarkThemeEnabled,
-    required this.onThemeChanged
-    });
+  const MyHomePage(
+      {super.key,
+      required this.isDarkThemeEnabled,
+      required this.onThemeChanged});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -137,15 +161,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _isDarkThemeEnabled = widget.isDarkThemeEnabled; // Initialize with the parent state
+    _isDarkThemeEnabled = 
+        settingsBox.get('_isDarkThemeEnabled', defaultValue: false);
+    _isCloseKeyboardEnabled =
+        settingsBox.get('_isCloseKeyboardEnabled', defaultValue: false);
+    _isShowTaskAddedEnabled =
+        settingsBox.get('_isShowTaskAddedEnabled', defaultValue: true);
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('To-Do List'),
         centerTitle: true,
       ),
@@ -204,11 +232,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   taskBox.add(Task(name: _controller.text));
                   _controller.clear();
                   // this down to close the keyboard after pressing
-                  _isCloseKeyboardEnabled 
-                  ? FocusScope.of(context).requestFocus(FocusNode()) : null ;
+                  _isCloseKeyboardEnabled
+                      ? FocusScope.of(context).requestFocus(FocusNode())
+                      : null;
                   _isShowTaskAddedEnabled
                       ? ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Task added!")),
+                          const SnackBar(content: Text("Task added successfully!")),
                         )
                       : null;
                 } else {
@@ -235,7 +264,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             Padding(
-              // you can use a stack and positioned to make the button go down more
               padding: const EdgeInsets.only(top: 70.0, right: 20.0),
               child: Align(
                 alignment: Alignment.bottomRight,
@@ -275,6 +303,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                         setState(() {
                                           _isCloseKeyboardEnabled = value;
                                         });
+                                        settingsBox.put(
+                                            '_isCloseKeyboardEnabled', value);
                                         setDialogState(
                                             () {}); // Updates the dialog's UI
                                       },
@@ -290,6 +320,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                         setState(() {
                                           _isShowTaskAddedEnabled = value;
                                         });
+                                        settingsBox.put(
+                                            '_isShowTaskAddedEnabled', value);
                                         setDialogState(() {});
                                       },
                                       activeColor: Colors.green,
@@ -301,11 +333,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                     trailing: Switch(
                                       value: _isDarkThemeEnabled,
                                       onChanged: (value) {
-                                    setDialogState(() {
-                                      _isDarkThemeEnabled = value;
-                                    });
-                                    widget.onThemeChanged(value); // Update the theme in the parent widget
-                                  },
+                                        setDialogState(() {
+                                          _isDarkThemeEnabled = value;
+                                        });
+                                        widget.onThemeChanged(
+                                            value); // Update the theme in the parent widget
+                                        settingsBox.put(
+                                            '_isDarkThemeEnabled', value);
+                                      },
                                       activeColor: Colors.green,
                                     ),
                                     title: const Text('Dark Theme'),
@@ -329,7 +364,6 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-         
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
@@ -369,7 +403,6 @@ class _TasksPageState extends State<TasksPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: const Text('To-Do List'),
           centerTitle: true,
         ),
@@ -446,7 +479,7 @@ class TaskWidget extends StatelessWidget {
     return ListTile(
       title: Text(task.name),
       trailing: IconButton(
-        icon: const Icon(Icons.delete),
+        icon: const Icon(Icons.check_circle_outline_outlined),
         onPressed: () {
           _deleteTask(context);
         },
