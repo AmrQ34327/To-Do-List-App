@@ -12,7 +12,14 @@ A simple and modern to-do list application built with Flutter. This app allows y
 ## Screenshots
 Here are a few screenshots of the app:
 
-add 3 screenshots here  
+
+<img src="https://github.com/user-attachments/assets/d5eb559b-00b0-42b1-b2b7-915252d675c4" width="300" height="500" alt="screenshot" />
+<img src="https://github.com/user-attachments/assets/0ae6a0a1-5d3f-48a5-9686-3ea7859daf34" width="300" height="500" alt="screenshot4" />
+<img src="https://github.com/user-attachments/assets/e4ab42b1-76c5-47bb-be46-c6d3f0b7398c" width="300" height="500" alt="screenshot5" />
+<img src="https://github.com/user-attachments/assets/c0052a17-43f4-41be-ab56-cad8bd2f0598" width="300" height="500" alt="screenshot6" />
+<img src="https://github.com/user-attachments/assets/0df4032d-9f3f-409d-ae96-3a7c71a72ca2" width="300" height="500" alt="screenshot7" />
+<img src="https://github.com/user-attachments/assets/55bb26ef-dcda-45ba-8d0f-78f026c6e3c7" width="300" height="500" alt="screenshot8" />
+
 
 
 
